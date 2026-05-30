@@ -1242,11 +1242,11 @@ onCatChange();
 //                   Restrict it to the Drive API + your domain.
 //   Make sure "Google Drive API" is enabled in your project's API Library.
 //
-const GDRIVE_CLIENT_ID = '688752614208-rhjlvk4vr8nkecau2stdpk0d6lk3no31.apps.googleusercontent.com';
-const GDRIVE_API_KEY   = 'AIzaSyDJ0r0LEMHhoO6MmK0XJLTR_D5uZQkWca8';
-// drive.file scope — can only access files this app created, OR files the user explicitly opens/picks.
-// This is sufficient: Person A creates the file via this app; Person B uses the file ID to access it.
-const GDRIVE_SCOPES    = 'https://www.googleapis.com/auth/drive.file';
+const GDRIVE_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+const GDRIVE_API_KEY   = 'YOUR_API_KEY';
+// drive scope — allows access to any file in the user's Drive, including files shared with them.
+// Needed so Person B can access a file created by Person A and shared via Drive.
+const GDRIVE_SCOPES    = 'https://www.googleapis.com/auth/drive';
 const GDRIVE_FILENAME  = 'expense_tracker_data.json';
 
 let gdriveTokenClient = null;
@@ -1290,7 +1290,7 @@ function gdriveAuth() {
       scheduleAutoUpload();
       resolve(gdriveAccessToken);
     };
-    gdriveTokenClient.requestAccessToken({ prompt: '' });
+    gdriveTokenClient.requestAccessToken({ prompt: 'consent' });
   });
 }
 
@@ -1299,7 +1299,7 @@ function gdriveAuth() {
 async function gdriveResolveFileId(token) {
   if (gdriveFileId) return gdriveFileId;
 
-  // Search among files this app created (drive.file scope only sees its own files)
+  // Search among all files visible to this user (including shared files)
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=name%3D%22${GDRIVE_FILENAME}%22+and+trashed%3Dfalse&fields=files(id%2Cname)`,
     { headers: { Authorization: `Bearer ${token}` } }
