@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Expense Tracker</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
 <style>
 /* ─── ROOT VARIABLES ────────────────────────────────────────────────────────── */
 :root {
@@ -241,6 +243,49 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
   .fab { bottom: 16px; right: 16px; width: 48px; height: 48px; }
   .form-row { grid-template-columns: 1fr; }
 }
+
+/* ─── GOOGLE DRIVE ──────────────────────────────────────────────────────────── */
+.gdrive-btn {
+  position: relative;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.18);
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+.gdrive-btn:hover { background: rgba(255,255,255,.25); }
+.gdrive-btn:disabled { opacity: .45; cursor: not-allowed; }
+.gdrive-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.gdrive-btn .gdrive-spin {
+  position: absolute; inset: 0;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  border-top-color: #fff;
+  animation: gdspin .7s linear infinite;
+  pointer-events: none;
+}
+@keyframes gdspin { to { transform: rotate(360deg); } }
+.gdrive-sep { width: 1px; height: 22px; background: rgba(255,255,255,.18); flex-shrink: 0; }
+.gdrive-status {
+  font-size: 10px;
+  color: rgba(255,255,255,.5);
+  white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+  max-width: 120px; overflow: hidden;
+}
+.gdrive-status .dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,.3);
+}
+.gdrive-status.connected .dot { background: #4ade80; }
+.gdrive-status.synced .dot { background: #4ade80; }
+.gdrive-status.error .dot { background: #f87171; }
+@media(max-width:600px) { .gdrive-status { display: none; } }
 </style>
 </head>
 <body>
@@ -251,6 +296,25 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
   <button class="shell-btn" onclick="openModal('settingsModal')">⚙</button>
   <button class="shell-btn" onclick="openModal('shortcutsModal')">⌨</button>
   <label class="shell-btn" style="cursor:pointer">📥 Import <input type="file" id="importFile" accept=".json" style="display:none"></label>
+
+  <!-- Google Drive controls -->
+  <div class="gdrive-sep"></div>
+  <div class="gdrive-status" id="gdriveStatus">
+    <span class="dot"></span><span id="gdriveStatusText">Not signed in</span>
+  </div>
+  <!-- Load from Drive -->
+  <button class="gdrive-btn" id="gdriveLoadBtn" onclick="gdriveLoad()" title="Load data from Google Drive">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+    </svg>
+  </button>
+  <!-- Upload to Drive -->
+  <button class="gdrive-btn" id="gdriveSaveBtn" onclick="gdriveSave()" title="Upload data to Google Drive">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+    </svg>
+  </button>
+
   <div class="shell-toggle" id="darkToggle" onclick="toggleDarkMode()"></div>
 </div>
 
@@ -324,6 +388,14 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
     <div class="settings-row"><div class="settings-label">Warning Threshold<small>Budget % for yellow</small></div><div class="settings-control"><input type="number" id="setWarnPct" min="10" max="95" style="width:70px"> %</div></div>
     <div class="settings-row"><div class="settings-label">Danger Threshold<small>Budget % for red</small></div><div class="settings-control"><input type="number" id="setDangerPct" min="20" max="100" style="width:70px"> %</div></div>
     <div class="settings-row"><div class="settings-label">Default Category<small>Fallback when auto-detect fails</small></div><div class="settings-control"><select id="setDefaultCat"></select></div></div>
+    <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <div class="settings-label">Google Drive File ID <small>Shared file ID — both users must enter the same value</small></div>
+      <div style="display:flex;gap:6px;width:100%">
+        <input type="text" id="setGdriveFileId" placeholder="Paste file ID here…" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:monospace;color:var(--text);background:var(--bg)">
+        <button onclick="gdriveCopyFileId()" title="Copy current file ID" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;font-size:13px;color:var(--text-2)" id="gdriveCopyBtn">📋</button>
+      </div>
+      <div id="gdriveFileIdHint" style="font-size:11px;color:var(--text-3);line-height:1.5"></div>
+    </div>
     <div class="modal-btn-row" style="margin-top:14px"><button class="btn-modal-cancel" onclick="closeModal('settingsModal')">Cancel</button><button class="btn-modal-ok" onclick="doSaveSettings()">Save</button></div>
   </div>
 </div>
@@ -619,6 +691,14 @@ function loadSettingsUI() {
   document.getElementById('setWarnPct').value = state.settings.warnPct;
   document.getElementById('setDangerPct').value = state.settings.dangerPct;
   document.getElementById('setDefaultCat').value = state.settings.defaultCategory;
+  const fid = state.settings.gdriveFileId || '';
+  document.getElementById('setGdriveFileId').value = fid;
+  const hint = document.getElementById('gdriveFileIdHint');
+  if (fid) {
+    hint.innerHTML = `✅ Shared file set. <a href="https://drive.google.com/file/d/${fid}/view" target="_blank" style="color:var(--brand)">Open in Drive ↗</a> — share this file with your partner, then they paste this same ID in their Settings.`;
+  } else {
+    hint.textContent = 'Upload once (leave blank) — the app will create the file and show its ID here. Then share that file in Google Drive with your partner.';
+  }
 }
 function toggleSettingBtn(id) { const el = document.getElementById(id); el.className = 'settings-toggle' + (el.classList.contains('on') ? '' : ' on'); }
 function doSaveSettings() {
@@ -627,6 +707,11 @@ function doSaveSettings() {
   state.settings.warnPct = parseInt(document.getElementById('setWarnPct').value) || 60;
   state.settings.dangerPct = parseInt(document.getElementById('setDangerPct').value) || 85;
   state.settings.defaultCategory = document.getElementById('setDefaultCat').value;
+  const newFileId = document.getElementById('setGdriveFileId').value.trim();
+  if (newFileId !== (state.settings.gdriveFileId || '')) {
+    state.settings.gdriveFileId = newFileId || undefined;
+    gdriveFileId = newFileId || null; // sync runtime cache
+  }
   saveData(); closeModal('settingsModal');
   if (activeMonth) renderAll();
   showToast('Settings saved.');
@@ -1142,6 +1227,221 @@ renderMonthTabs();
 document.getElementById('fDate').value = todayStr();
 if (activeMonth && state.months[activeMonth]) renderAll();
 onCatChange();
+
+// ═════════════════════════════════════════════════════════════════════════════
+// GOOGLE DRIVE INTEGRATION  (Shared file — Option 1)
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// ⚠️  SETUP REQUIRED — replace these two values before deploying:
+//   1. CLIENT_ID  → OAuth 2.0 client ID from Google Cloud Console
+//                   (APIs & Services > Credentials > Create OAuth client ID)
+//                   Application type: Web application
+//                   Authorised JavaScript origins: your page URL
+//   2. API_KEY    → An API key from Google Cloud Console
+//                   (APIs & Services > Credentials > Create API key)
+//                   Restrict it to the Drive API + your domain.
+//   Make sure "Google Drive API" is enabled in your project's API Library.
+//
+const GDRIVE_CLIENT_ID = '688752614208-rhjlvk4vr8nkecau2stdpk0d6lk3no31.apps.googleusercontent.com';
+const GDRIVE_API_KEY   = 'AIzaSyDJ0r0LEMHhoO6MmK0XJLTR_D5uZQkWca8';
+// drive.file scope — can only access files this app created, OR files the user explicitly opens/picks.
+// This is sufficient: Person A creates the file via this app; Person B uses the file ID to access it.
+const GDRIVE_SCOPES    = 'https://www.googleapis.com/auth/drive.file';
+const GDRIVE_FILENAME  = 'expense_tracker_data.json';
+
+let gdriveTokenClient = null;
+let gdriveAccessToken = null;
+let gdriveFileId      = null;   // resolved at runtime from settings or after first upload
+let gdriveReady       = false;
+let gdriveAutoTimer   = null;
+const GDRIVE_AUTO_MS  = 6 * 60 * 60 * 1000; // 6 hours
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function gdriveInit() {
+  gapi.load('client', async () => {
+    try {
+      await gapi.client.init({ apiKey: GDRIVE_API_KEY, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+      gdriveReady = true;
+      // Restore saved file ID from settings
+      if (state.settings.gdriveFileId) gdriveFileId = state.settings.gdriveFileId;
+    } catch(e) { console.warn('GAPI init error', e); }
+  });
+
+  gdriveTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPES,
+    callback: '',
+  });
+}
+
+(function waitForGIS() {
+  if (typeof google !== 'undefined' && typeof gapi !== 'undefined') { gdriveInit(); }
+  else { setTimeout(waitForGIS, 300); }
+})();
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function gdriveAuth() {
+  return new Promise((resolve, reject) => {
+    if (gdriveAccessToken) { resolve(gdriveAccessToken); return; }
+    gdriveTokenClient.callback = (resp) => {
+      if (resp.error) { reject(resp); return; }
+      gdriveAccessToken = resp.access_token;
+      gdriveSetStatus('connected', 'Connected');
+      scheduleAutoUpload();
+      resolve(gdriveAccessToken);
+    };
+    gdriveTokenClient.requestAccessToken({ prompt: '' });
+  });
+}
+
+// ── Resolve file ID ───────────────────────────────────────────────────────────
+// Priority: 1) already cached in gdriveFileId  2) saved in settings  3) search by name (own files only)
+async function gdriveResolveFileId(token) {
+  if (gdriveFileId) return gdriveFileId;
+
+  // Search among files this app created (drive.file scope only sees its own files)
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name%3D%22${GDRIVE_FILENAME}%22+and+trashed%3Dfalse&fields=files(id%2Cname)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const data = await res.json();
+  if (data.files && data.files.length > 0) {
+    gdriveFileId = data.files[0].id;
+    // Persist so Person B doesn't need to re-enter after first load
+    if (!state.settings.gdriveFileId) {
+      state.settings.gdriveFileId = gdriveFileId;
+      saveData();
+    }
+  }
+  return gdriveFileId;
+}
+
+// ── Upload (save) ─────────────────────────────────────────────────────────────
+async function gdriveSave(silent = false) {
+  if (!gdriveReady) { if (!silent) showToast('Google API not ready yet — try again in a moment.', true); return; }
+  const btn = document.getElementById('gdriveSaveBtn');
+  gdriveSetBusy(btn, true);
+  try {
+    const token = await gdriveAuth();
+
+    // If user pasted a file ID in settings, use that directly (shared file)
+    let fileId = state.settings.gdriveFileId || await gdriveResolveFileId(token);
+
+    const body = JSON.stringify(state);
+    const metadata = { name: GDRIVE_FILENAME, mimeType: 'application/json' };
+    let url, method;
+
+    if (fileId) {
+      url    = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+      method = 'PATCH';
+    } else {
+      // First-ever upload — create new file in user's Drive root
+      url    = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+      method = 'POST';
+    }
+
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file',     new Blob([body],                     { type: 'application/json' }));
+
+    const res   = await fetch(url, { method, headers: { Authorization: `Bearer ${token}` }, body: form });
+    const saved = await res.json();
+
+    if (saved.id) {
+      gdriveFileId = saved.id;
+      // Persist the file ID so the other user can paste it in Settings
+      if (!state.settings.gdriveFileId || state.settings.gdriveFileId !== saved.id) {
+        state.settings.gdriveFileId = saved.id;
+        saveData();
+      }
+      const now = new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+      gdriveSetStatus('synced', `Saved ${now}`);
+      if (!silent) {
+        showToast(`✅ Saved to Google Drive — File ID: ${saved.id}`);
+        // Prompt user to check settings if this was the first upload
+        if (method === 'POST') {
+          setTimeout(() => showToast('📋 Open Settings to copy the File ID and share it with your partner.'), 3500);
+        }
+      }
+    } else {
+      throw new Error(saved.error?.message || 'Unknown error');
+    }
+  } catch(e) {
+    console.error('Drive save error', e);
+    gdriveSetStatus('error', 'Save failed');
+    if (!silent) showToast('❌ Drive save failed: ' + (e.message || e.error || e), true);
+    if (e.error === 'invalid_grant' || e.error === 'TOKEN_EXPIRED') gdriveAccessToken = null;
+  } finally {
+    gdriveSetBusy(btn, false);
+  }
+}
+
+// ── Load (download) ───────────────────────────────────────────────────────────
+async function gdriveLoad() {
+  if (!gdriveReady) { showToast('Google API not ready yet — try again in a moment.', true); return; }
+  const btn = document.getElementById('gdriveLoadBtn');
+  gdriveSetBusy(btn, true);
+  try {
+    const token = await gdriveAuth();
+    const fileId = state.settings.gdriveFileId || await gdriveResolveFileId(token);
+    if (!fileId) {
+      showToast('No file ID set. Upload first, or paste a shared File ID in Settings.', true);
+      gdriveSetStatus('error', 'No file ID');
+      return;
+    }
+    const res  = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+    const text = await res.text();
+    pendingImportData = JSON.parse(text);
+    gdriveFileId = fileId;
+    gdriveSetStatus('synced', 'Loaded ✓');
+    showToast('✅ Loaded from Google Drive — choose how to apply it.');
+    openModal('importModal');
+  } catch(e) {
+    console.error('Drive load error', e);
+    gdriveSetStatus('error', 'Load failed');
+    showToast('❌ Drive load failed: ' + (e.message || e.error || e), true);
+    if (e.error === 'invalid_grant' || e.error === 'TOKEN_EXPIRED') gdriveAccessToken = null;
+  } finally {
+    gdriveSetBusy(btn, false);
+  }
+}
+
+// ── Copy file ID helper (from Settings modal) ─────────────────────────────────
+function gdriveCopyFileId() {
+  const id = state.settings.gdriveFileId || gdriveFileId;
+  if (!id) { showToast('No file ID yet — upload first.', true); return; }
+  navigator.clipboard.writeText(id).then(() => showToast('📋 File ID copied to clipboard!')).catch(() => {
+    document.getElementById('setGdriveFileId').select();
+    showToast('Select all and copy manually.', true);
+  });
+}
+
+// ── Auto-upload every 6 hours ─────────────────────────────────────────────────
+function scheduleAutoUpload() {
+  if (gdriveAutoTimer) clearInterval(gdriveAutoTimer);
+  gdriveAutoTimer = setInterval(() => { if (gdriveAccessToken) gdriveSave(true); }, GDRIVE_AUTO_MS);
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function gdriveSetStatus(cls, text) {
+  const el = document.getElementById('gdriveStatus');
+  const tx = document.getElementById('gdriveStatusText');
+  el.className = 'gdrive-status ' + cls;
+  tx.textContent = text;
+}
+function gdriveSetBusy(btn, busy) {
+  btn.disabled = busy;
+  let spin = btn.querySelector('.gdrive-spin');
+  if (busy) { if (!spin) { spin = document.createElement('span'); spin.className = 'gdrive-spin'; btn.appendChild(spin); } }
+  else { if (spin) spin.remove(); }
+}
+
+
+
 </script>
 </body>
 </html>
