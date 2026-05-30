@@ -1,8 +1,6 @@
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
 
-const redis = Redis.fromEnv();
-
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
@@ -13,11 +11,15 @@ export default async function handler(req, res) {
   if (!password) return res.status(400).json({ error: 'Password is required' });
   if (!data) return res.status(400).json({ error: 'Data is required' });
   try {
+    const redis = new Redis({
+      url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
     const key = `expenses:${hashPassword(password)}`;
     await redis.set(key, JSON.stringify(data));
     return res.status(200).json({ ok: true });
   } catch (e) {
     console.error('Redis save error:', e);
-    return res.status(500).json({ error: 'Failed to save data' });
+    return res.status(500).json({ error: 'Failed to save data', detail: e.message });
   }
 }
