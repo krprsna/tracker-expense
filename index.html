@@ -1262,9 +1262,11 @@ async function syncSave(silent = false) {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    if (json.savedAt) syncLastSavedAt = json.savedAt;
     const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     syncSetStatus('ok', `Synced ${now}`);
     showToast(`☁️ Synced to cloud at ${now}`);
+    syncStartPolling();
   } catch(e) {
     syncSetStatus('error', 'Sync failed');
     showToast('❌ Sync failed: ' + e.message, true);
@@ -1291,10 +1293,12 @@ async function syncLoad() {
     if (res.status === 404) { showToast('No cloud data found. Upload first.', true); syncSetStatus('error', 'No data'); return; }
     if (res.status === 401) { showToast('❌ Wrong password.', true); syncSetStatus('error', 'Wrong password'); return; }
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    if (json.savedAt) syncLastSavedAt = json.savedAt;
     pendingImportData = json.data;
     syncSetStatus('ok', 'Loaded ✓');
     showToast('✅ Loaded from cloud — choose how to apply it.');
     openModal('importModal');
+    syncStartPolling();
   } catch(e) {
     syncSetStatus('error', 'Load failed');
     showToast('❌ Load failed: ' + e.message, true);
@@ -1320,11 +1324,58 @@ function syncSetBusy(btn, busy) {
 
 // ── Debounced auto-sync on every change ───────────────────────────────────────
 let syncDebounceTimer = null;
+let syncLastSavedAt = 0;    // timestamp of last cloud save we did or received
+let syncPollTimer = null;
+const SYNC_POLL_MS = 30000; // poll every 30 seconds
+
 function syncAutoDebounced() {
   clearTimeout(syncDebounceTimer);
   syncSetStatus('syncing', 'Syncing…');
   syncDebounceTimer = setTimeout(() => syncSave(true), 3000);
 }
+
+// ── Silent poll — apply cloud data if newer ───────────────────────────────────
+async function syncPoll() {
+  const password = syncGetPassword();
+  if (!password) return;
+  // Don't poll if we have a pending save in flight
+  if (syncDebounceTimer) return;
+  try {
+    const res = await fetch('/api/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    if (!res.ok) return;
+    const json = await res.json();
+    // Only apply if cloud is strictly newer than what we last synced
+    if (json.savedAt && json.savedAt > syncLastSavedAt) {
+      syncLastSavedAt = json.savedAt;
+      // Silently replace state and re-render
+      const incoming = json.data;
+      if (incoming && incoming.months) {
+        state.months = incoming.months;
+        if (incoming.descriptionLists) state.descriptionLists = incoming.descriptionLists;
+        saveData._skipCloud = true; // prevent re-upload loop
+        localStorage.setItem(LS_KEY, JSON.stringify(state));
+        saveData._skipCloud = false;
+        renderMonthTabs();
+        if (activeMonth && state.months[activeMonth]) renderAll();
+        const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        syncSetStatus('ok', `Updated ${now}`);
+        showToast('🔄 Data updated from cloud.');
+      }
+    }
+  } catch(e) { /* silent — polling errors shouldn't bother the user */ }
+}
+
+function syncStartPolling() {
+  if (syncPollTimer) clearInterval(syncPollTimer);
+  syncPollTimer = setInterval(syncPoll, SYNC_POLL_MS);
+}
+
+// Start polling if password already set
+if (syncGetPassword()) syncStartPolling();
 
 // Auto-upload when user leaves the page (fallback for pending debounce)
 window.addEventListener('beforeunload', () => {
