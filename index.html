@@ -149,6 +149,8 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
 .btn-export-json:hover { opacity: .85; }
 .btn-export-selall { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
 .btn-export-selall:hover { border-color: var(--brand); color: var(--brand); }
+.btn-import-json { background: var(--c-bills); color: #fff; }
+.btn-import-json:hover { opacity: .85; }
 
 /* ─── MODALS ────────────────────────────────────────────────────────────────── */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
@@ -487,7 +489,7 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
         <button class="btn-export btn-export-selall" onclick="toggleSelectAll()">Select All</button>
         <button class="btn-export btn-export-csv" onclick="doExportCSV()">Export CSV</button>
         <button class="btn-export btn-export-json" onclick="doExportJSON()">Export JSON</button>
-        <label class="btn-export" style="background:var(--c-food);color:#fff;cursor:pointer">Import JSON <input type="file" id="importFile" accept=".json" style="display:none"></label>
+        <label class="btn-export btn-import-json" style="cursor:pointer">Import JSON <input type="file" id="importFile" accept=".json" style="display:none"></label>
       </div>
     </div>
   </div>
