@@ -1222,8 +1222,7 @@ onCatChange();
 // ═════════════════════════════════════════════════════════════════════════════
 // VERCEL KV SYNC
 // ═════════════════════════════════════════════════════════════════════════════
-let syncAutoTimer = null;
-const SYNC_AUTO_MS = 6 * 60 * 60 * 1000; // 6 hours
+let syncDebounceTimer = null;
 
 function syncGetPassword() {
   return state.settings.syncPassword || '';
@@ -1248,7 +1247,6 @@ async function syncSave(silent = false) {
     const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     syncSetStatus('ok', `Synced ${now}`);
     showToast(`☁️ Synced to cloud at ${now}`);
-    scheduleSyncAuto();
   } catch(e) {
     syncSetStatus('error', 'Sync failed');
     showToast('❌ Sync failed: ' + e.message, true);
@@ -1287,12 +1285,6 @@ async function syncLoad() {
   }
 }
 
-function scheduleSyncAuto() {
-  if (syncAutoTimer) clearInterval(syncAutoTimer);
-  syncAutoTimer = setInterval(() => {
-    if (syncGetPassword()) syncSave(true);
-  }, SYNC_AUTO_MS);
-}
 
 function syncSetStatus(cls, text) {
   const el = document.getElementById('syncStatus');
@@ -1307,9 +1299,6 @@ function syncSetBusy(btn, busy) {
   if (busy) { if (!spin) { spin = document.createElement('span'); spin.className = 'sync-spin'; btn.appendChild(spin); } }
   else { if (spin) spin.remove(); }
 }
-
-// Start auto-sync if password already set
-if (syncGetPassword()) scheduleSyncAuto();
 
 // ── Debounced auto-sync on every change ───────────────────────────────────────
 let syncDebounceTimer = null;
