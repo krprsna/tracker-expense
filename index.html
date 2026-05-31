@@ -277,7 +277,9 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
 }
 .sync-status .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: rgba(255,255,255,.3); }
 .sync-status.ok .dot { background: #4ade80; }
+.sync-status.syncing .dot { background: #fbbf24; animation: syncpulse 1s ease-in-out infinite; }
 .sync-status.error .dot { background: #f87171; }
+@keyframes syncpulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 @media(max-width:600px) { .sync-status { display: none; } }
 </style>
 </head>
@@ -605,7 +607,10 @@ function loadData() {
   } catch(e) { console.error('Load error:', e); }
 }
 
-function saveData() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function saveData() {
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  if (syncGetPassword()) syncAutoDebounced();
+}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function cur() { return state.settings.currency || '₹'; }
 function fmt(n) { return cur() + Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2}); }
@@ -1241,12 +1246,12 @@ async function syncSave(silent = false) {
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
     const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    syncSetStatus('ok', `Saved ${now}`);
-    if (!silent) showToast('✅ Data saved to cloud.');
+    syncSetStatus('ok', `Synced ${now}`);
+    showToast(`☁️ Synced to cloud at ${now}`);
     scheduleSyncAuto();
   } catch(e) {
-    syncSetStatus('error', 'Save failed');
-    if (!silent) showToast('❌ Save failed: ' + e.message, true);
+    syncSetStatus('error', 'Sync failed');
+    showToast('❌ Sync failed: ' + e.message, true);
   } finally {
     syncSetBusy(btn, false);
   }
@@ -1305,6 +1310,22 @@ function syncSetBusy(btn, busy) {
 
 // Start auto-sync if password already set
 if (syncGetPassword()) scheduleSyncAuto();
+
+// ── Debounced auto-sync on every change ───────────────────────────────────────
+let syncDebounceTimer = null;
+function syncAutoDebounced() {
+  clearTimeout(syncDebounceTimer);
+  syncSetStatus('syncing', 'Syncing…');
+  syncDebounceTimer = setTimeout(() => syncSave(true), 3000);
+}
+
+// Auto-upload when user leaves the page (fallback for pending debounce)
+window.addEventListener('beforeunload', () => {
+  if (!syncGetPassword()) return;
+  clearTimeout(syncDebounceTimer); // cancel any pending debounce
+  const payload = JSON.stringify({ password: syncGetPassword(), data: state });
+  navigator.sendBeacon('/api/save', new Blob([payload], { type: 'application/json' }));
+});
 
 
 
