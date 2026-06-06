@@ -346,6 +346,17 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
   </div>
 </div>
 
+<div class="modal-overlay" id="backupModal">
+  <div class="modal">
+    <div class="modal-title">Restore Backup</div>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Choose a backup date to restore. Your current data will be replaced.</p>
+    <div id="backupDateList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <div style="color:var(--text-3);font-size:13px;text-align:center;padding:12px">Loading backups…</div>
+    </div>
+    <div class="modal-btn-row"><button class="btn-modal-cancel" onclick="closeModal('backupModal')">Cancel</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="deleteMonthModal">
   <div class="modal">
     <div class="modal-title" style="color:var(--danger)">⚠ Delete Month</div>
@@ -490,6 +501,7 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
         <button class="btn-export btn-export-csv" onclick="doExportCSV()">Export CSV</button>
         <button class="btn-export btn-export-json" onclick="doExportJSON()">Export JSON</button>
         <label class="btn-export btn-import-json" style="cursor:pointer">Import JSON <input type="file" id="importFile" accept=".json" style="display:none"></label>
+        <button class="btn-export" style="background:var(--c-transport);color:#fff" onclick="openBackupModal()">Restore Backup</button>
       </div>
     </div>
   </div>
@@ -611,7 +623,7 @@ function loadData() {
 
 function saveData() {
   localStorage.setItem(LS_KEY, JSON.stringify(state));
-  if (syncGetPassword() && !syncSkipCloud) syncAutoDebounced();
+  if (syncGetPassword() && !syncSkipCloud && syncReadyToUpload) syncAutoDebounced();
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function cur() { return state.settings.currency || '₹'; }
@@ -704,10 +716,29 @@ function doSaveSettings() {
   state.settings.warnPct = parseInt(document.getElementById('setWarnPct').value) || 60;
   state.settings.dangerPct = parseInt(document.getElementById('setDangerPct').value) || 85;
   state.settings.defaultCategory = document.getElementById('setDefaultCat').value;
-  state.settings.syncPassword = document.getElementById('setSyncPassword').value.trim();
-  saveData(); closeModal('settingsModal');
+  const oldPassword = state.settings.syncPassword || '';
+  const newPassword = document.getElementById('setSyncPassword').value.trim();
+  state.settings.syncPassword = newPassword;
+  const hasLocalData = Object.keys(state.months || {}).length > 0;
+  syncSkipCloud = true; // prevent saveData from triggering upload
+  saveData();
+  syncSkipCloud = false;
+  closeModal('settingsModal');
   if (activeMonth) renderAll();
   showToast('Settings saved.');
+  // If a new password was just entered on a device with no local data, pull from cloud
+  if (newPassword && newPassword !== oldPassword && !hasLocalData) {
+    syncReadyToUpload = false;
+    showToast('🔄 Pulling data from cloud…');
+    syncPullSilent();
+  } else if (newPassword && newPassword !== oldPassword) {
+    // Password changed on a device that has data — pull to check for newer cloud data first
+    syncReadyToUpload = false;
+    syncPullSilent();
+  } else if (newPassword) {
+    syncReadyToUpload = true;
+    syncStartPolling();
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1241,12 +1272,21 @@ onCatChange();
 // ═════════════════════════════════════════════════════════════════════════════
 // VERCEL KV SYNC
 // ═════════════════════════════════════════════════════════════════════════════
-let syncSkipCloud    = false;  // prevent poll-triggered saves
+let syncSkipCloud     = false;
 let syncDebounceTimer = null;
-let syncIsSaving     = false;  // true while a save fetch is in flight
-let syncLastSavedAt  = null;   // timestamp of last cloud state we know about
-let syncPollTimer    = null;
-const SYNC_POLL_MS   = 30000;  // poll every 30 seconds
+let syncIsSaving      = false;
+let syncPollTimer     = null;
+let syncReadyToUpload = false; // only true after we've verified local is not behind cloud
+const SYNC_POLL_MS    = 30000;
+const SYNC_TS_KEY     = 'expense_tracker_sync_ts'; // persisted timestamp
+
+// Persist syncLastSavedAt across page loads so we know if this device is behind
+let syncLastSavedAt = parseInt(localStorage.getItem(SYNC_TS_KEY) || '0', 10) || null;
+
+function syncSaveTs(ts) {
+  syncLastSavedAt = ts;
+  localStorage.setItem(SYNC_TS_KEY, String(ts));
+}
 
 function syncGetPassword() {
   return state.settings.syncPassword || '';
@@ -1271,7 +1311,7 @@ async function syncSave(silent = false) {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    syncLastSavedAt = json.savedAt || Date.now();
+    syncSaveTs(json.savedAt || Date.now());
     const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     syncSetStatus('ok', `Synced ${now}`);
     showToast(`☁️ Synced to cloud at ${now}`);
@@ -1300,7 +1340,7 @@ async function syncLoad() {
     const json = await res.json();
     if (res.status === 404) { showToast('No cloud data found. Upload first.', true); syncSetStatus('error', 'No data'); return; }
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    syncLastSavedAt = json.savedAt || Date.now();
+    syncSaveTs(json.savedAt || Date.now());
     pendingImportData = json.data;
     syncSetStatus('ok', 'Loaded ✓');
     showToast('✅ Loaded from cloud — choose how to apply it.');
@@ -1329,7 +1369,7 @@ async function syncPoll() {
     const cloudTs = json.savedAt || 0;
     // Apply only if cloud is strictly newer than last known timestamp
     if (cloudTs && (syncLastSavedAt === null || cloudTs > syncLastSavedAt)) {
-      syncLastSavedAt = cloudTs;
+      syncSaveTs(cloudTs);
       const incoming = json.data;
       if (!incoming || !incoming.months) return;
       // Replace state without triggering another upload
@@ -1354,6 +1394,8 @@ async function syncPoll() {
 
 // ── Debounced auto-sync on every change ───────────────────────────────────────
 function syncAutoDebounced() {
+  // Never upload if local state is empty — would overwrite cloud data
+  if (Object.keys(state.months || {}).length === 0) return;
   clearTimeout(syncDebounceTimer);
   syncDebounceTimer = null;
   syncSetStatus('syncing', 'Syncing…');
@@ -1361,6 +1403,45 @@ function syncAutoDebounced() {
     syncDebounceTimer = null;
     await syncSave(true);
   }, 3000);
+}
+
+// ── Silent pull — used when password is set on a new device ───────────────────
+async function syncPullSilent() {
+  const password = syncGetPassword();
+  if (!password) return;
+  try {
+    const res = await fetch('/api/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    if (!res.ok) { syncReadyToUpload = true; showToast('No cloud data found yet.', true); syncStartPolling(); return; }
+    const json = await res.json();
+    if (!json.data || !json.data.months) { syncReadyToUpload = true; showToast('No cloud data found yet.', true); syncStartPolling(); return; }
+    const cloudTs = json.savedAt || 0;
+    // Only apply cloud data if it's newer than what this device last synced
+    if (!syncLastSavedAt || cloudTs > syncLastSavedAt) {
+      syncSaveTs(cloudTs);
+      syncSkipCloud = true;
+      Object.assign(state, json.data);
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+      syncSkipCloud = false;
+      populateCategorySelects();
+      renderMonthTabs();
+      const ks = Object.keys(state.months).sort();
+      if (ks.length) { activeMonth = ks[ks.length - 1]; renderAll(); }
+      syncSetStatus('ok', 'Pulled from cloud ✓');
+      showToast('✅ Data loaded from cloud successfully.');
+    } else {
+      syncSetStatus('ok', 'Up to date');
+    }
+    syncReadyToUpload = true;
+    syncStartPolling();
+  } catch(e) {
+    syncReadyToUpload = true;
+    showToast('❌ Could not pull from cloud: ' + e.message, true);
+    syncStartPolling();
+  }
 }
 
 function syncStartPolling() {
@@ -1378,8 +1459,12 @@ window.addEventListener('beforeunload', () => {
   navigator.sendBeacon('/api/save', new Blob([payload], { type: 'application/json' }));
 });
 
-// Start polling if password already set on page load
-if (syncGetPassword()) syncStartPolling();
+// On page load: if password is set, always check cloud first before allowing uploads.
+// This prevents a stale device from overwriting newer cloud data.
+if (syncGetPassword()) {
+  syncReadyToUpload = false;
+  syncPullSilent();
+}
 
 function syncSetStatus(cls, text) {
   const el = document.getElementById('syncStatus');
@@ -1395,9 +1480,90 @@ function syncSetBusy(btn, busy) {
   if (busy) { if (!spin) { spin = document.createElement('span'); spin.className = 'sync-spin'; btn.appendChild(spin); } }
   else { if (spin) spin.remove(); }
 }
+// ═════════════════════════════════════════════════════════════════════════════
+// BACKUP & RESTORE
+// ═════════════════════════════════════════════════════════════════════════════
+async function openBackupModal() {
+  if (!syncGetPassword()) { showToast('Set a Sync Password in ⚙ Settings first.', true); return; }
+  openModal('backupModal');
+  const listEl = document.getElementById('backupDateList');
+  listEl.innerHTML = '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:12px">Loading backups…</div>';
+  try {
+    const res = await fetch('/api/backups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: syncGetPassword() })
+    });
+    const json = await res.json();
+    const dates = json.dates || [];
+    if (dates.length === 0) {
+      listEl.innerHTML = '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:12px">No backups found yet. Backups are created automatically every day you use the app.</div>';
+      return;
+    }
+    listEl.innerHTML = dates.map(date => {
+      const d = new Date(date + 'T00:00:00');
+      const label = d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const isToday = date === new Date().toISOString().slice(0, 10);
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${label}</div>
+            ${isToday ? '<div style="font-size:11px;color:var(--brand);margin-top:2px">Today\'s backup</div>' : ''}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="doDownloadBackup('${date}')" style="padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;font-size:12px;color:var(--text-2)" title="Download as JSON">⬇ Download</button>
+            <button onclick="doRestoreBackup('${date}')" style="padding:6px 12px;border:none;border-radius:6px;background:var(--brand);color:#fff;cursor:pointer;font-size:12px;font-weight:600">Restore</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = `<div style="color:var(--danger);font-size:13px;text-align:center;padding:12px">Failed to load backups: ${e.message}</div>`;
+  }
+}
 
+async function doRestoreBackup(date) {
+  if (!confirm(`Restore data from ${date}? Your current data will be replaced.`)) return;
+  closeModal('backupModal');
+  try {
+    const res = await fetch('/api/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: syncGetPassword(), date })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    syncSkipCloud = true;
+    Object.assign(state, json.data);
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    syncSkipCloud = false;
+    populateCategorySelects();
+    renderMonthTabs();
+    const ks = Object.keys(state.months).sort();
+    if (ks.length) { activeMonth = ks[ks.length - 1]; renderAll(); }
+    showToast(`✅ Restored data from ${date}. Click ⬆ to save to cloud if you want to keep this.`);
+  } catch(e) {
+    showToast('❌ Restore failed: ' + e.message, true);
+  }
+}
 
-
+async function doDownloadBackup(date) {
+  try {
+    const res = await fetch('/api/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: syncGetPassword(), date })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    const blob = new Blob([JSON.stringify(json.data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `expense_backup_${date}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  } catch(e) {
+    showToast('❌ Download failed: ' + e.message, true);
+  }
+}
 
 </script>
 </body>
