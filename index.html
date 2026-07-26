@@ -521,6 +521,7 @@ const CATEGORIES = [
   { id:'vegetables',   name:'Vegetables',        emoji:'🥦', cssVar:'--c-grocery' },
   { id:'fruits',       name:'Fruits',            emoji:'🍎', cssVar:'--c-outside' },
   { id:'outside_food', name:'Outside Food',      emoji:'🍕', cssVar:'--c-outside' },
+  { id:'nonveg',       name:'Non Veg',           emoji:'🍗', cssVar:'--c-medical' },
   { id:'medical',      name:'Medical',           emoji:'🏥', cssVar:'--c-medical' },
   { id:'bills',        name:'Bills & Utilities', emoji:'🏠', cssVar:'--c-bills' },
   { id:'transport',    name:'Transport',         emoji:'🚗', cssVar:'--c-transport' },
@@ -538,6 +539,7 @@ const DEFAULT_DESCS = {
   vegetables:   ['Tomato','Onion','Potato','Carrot','Beans','Cabbage','Cauliflower','Brinjal','Capsicum','Spinach','Methi','Coriander','Curry leaves','Drumstick','Bitter gourd','Ridge gourd','Bottle gourd','Ash gourd','Raw banana','Plantain','Yam','Colocasia','Sweet potato','Radish','Turnip','Beetroot','Peas','Corn','Mushroom','Broccoli','Zucchini','Lettuce','Celery','Lady finger','Okra','Cluster beans','Flat beans','Tindora','Kovakkai','Vazhakkai','Kathirikkai','Vendakkai','Seppankizhangu','Keerai'],
   fruits:       ['Apple','Banana','Mango','Orange','Grapes','Watermelon','Papaya','Pineapple','Pomegranate','Guava','Chickoo','Sapota','Custard apple','Sitaphal','Jackfruit','Coconut','Tender coconut','Lemon','Lime','Kiwi','Strawberry','Blueberry','Pear','Peach','Plum','Apricot','Fig','Dates','Dry fruits','Raisin','Cashew','Almond','Walnut','Pistachio','Peanut'],
   outside_food: ['Zomato','Swiggy','Restaurant','Hotel food','Cafe','Bakery','Biryani','Pizza','Burger','Dosa','Idli','Meals','Tiffin','Parcel food','Tea','Coffee','Juice','Snacks','Sweets','Chaat','Ice cream','Shawarma','Momos','KFC','McDonalds','Dominos','Starbucks','CCD','Canteen','Parotta','Outside food'],
+  nonveg:       ['Chicken','Mutton','Fish','Prawn','Egg','Crab','Squid','Beef','Pork','Chicken curry','Fish curry','Mutton curry','Chicken biryani','Mutton biryani','Fish fry','Chicken fry','Prawn fry','Seafood','Non veg'],
   medical:      ['Medicine','Doctor visit','Lab test','Pharmacy','Dental','Hospital','Clinic','Tablet','Syrup','Injection','Scan','Blood test','X-ray','Physiotherapy','Ayurvedic','Homeopathy','Eye drops','Bandage','Glucometer','BP machine','Nebulizer','Vitamin','Supplement','Protein','Calcium','Iron','Zinc'],
   bills:        ['Rent','EB','Electricity','Mobile recharge','Internet','Gas cylinder','Maid','Netflix','Amazon Prime','Insurance','EMI','Maintenance','Water bill','DTH','Cable','Spotify','Hotstar','School fees','College fees','Loan','Newspaper','LPG'],
   transport:    ['Uber','Ola','Auto','Petrol','Diesel','Bus','Train','Metro','Parking','Rapido','Cab','Toll','Flight','Bike service','Car wash','Fuel'],
@@ -592,6 +594,15 @@ const CAT_KEYWORDS = {
     'vadai','vada','pongal','upma','poori','parotta','chapati','roti','naan','kulcha',
     'paniyaram','puttu','pesarattu','uttapam','adai','dine','dining',
     'takeaway','takeout','delivery','food order','eat out','outing food','outside','hotel food'
+  ],
+  nonveg: [
+    'chicken','mutton','fish','prawn','prawns','shrimp','crab','squid','lobster','beef','pork',
+    'chicken curry','fish curry','mutton curry','chicken biryani','mutton biryani','fish biryani',
+    'chicken fry','fish fry','prawn fry','mutton fry','chicken 65','chicken gravy','pepper chicken',
+    'butter chicken','tandoori','kebab','seekh kebab','tikka','fish masala','prawn masala',
+    'crab masala','seafood','non veg','nonveg','meat','lamb','goat','turkey','duck','quail',
+    'sardine','mackerel','tuna','salmon','pomfret','rohu','catla','tilapia','vanjaram',
+    'seer fish','karimeen','nethili','meen','kozhi','aattu kari','naatu kozhi','eral','nandu'
   ],
   medical: [
     'medicine','medicines','doctor','hospital','clinic','pharmacy','medical','tablet','tablets',
