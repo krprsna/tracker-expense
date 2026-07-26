@@ -517,13 +517,16 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
 // CATEGORIES — the single source of truth
 // ═════════════════════════════════════════════════════════════════════════════
 const CATEGORIES = [
-  { id:'grocery',      name:'Grocery',          emoji:'🛒', cssVar:'--c-grocery' },
-  { id:'vegetables',   name:'Vegetables',       emoji:'🥦', cssVar:'--c-grocery' },
-  { id:'fruits',       name:'Fruits',           emoji:'🍎', cssVar:'--c-outside' },
-  { id:'medical',      name:'Medical',          emoji:'🏥', cssVar:'--c-medical' },
-  { id:'outside_food', name:'Outside Food',     emoji:'🍕', cssVar:'--c-outside' },
-  { id:'bills',        name:'Bills & Utilities',emoji:'🏠', cssVar:'--c-bills' },
-  { id:'other',        name:'Others',           emoji:'📦', cssVar:'--c-other' },
+  { id:'grocery',      name:'Grocery',           emoji:'🛒', cssVar:'--c-grocery' },
+  { id:'vegetables',   name:'Vegetables',        emoji:'🥦', cssVar:'--c-grocery' },
+  { id:'fruits',       name:'Fruits',            emoji:'🍎', cssVar:'--c-outside' },
+  { id:'outside_food', name:'Outside Food',      emoji:'🍕', cssVar:'--c-outside' },
+  { id:'medical',      name:'Medical',           emoji:'🏥', cssVar:'--c-medical' },
+  { id:'bills',        name:'Bills & Utilities', emoji:'🏠', cssVar:'--c-bills' },
+  { id:'transport',    name:'Transport',         emoji:'🚗', cssVar:'--c-transport' },
+  { id:'clothing',     name:'Clothing & Fashion',emoji:'👗', cssVar:'--c-clothing' },
+  { id:'selfcare',     name:'Self Care',         emoji:'💄', cssVar:'--c-selfcare' },
+  { id:'other',        name:'Others',            emoji:'📦', cssVar:'--c-other' },
 ];
 const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
 function getCat(id) { return CAT_MAP[id] || CAT_MAP['other']; }
@@ -532,11 +535,14 @@ function catColor(id) { return `var(${getCat(id).cssVar})`; }
 // Default description items per category
 const DEFAULT_DESCS = {
   grocery:      ['Milk','Curd','Egg','Paneer','Bread','Butter','Ghee','Rice','Dal','Oil','Atta','Sugar','Salt','Broom','Tissue','Detergent','Soap','Shampoo','Toothpaste','Masala','Coconut oil','Mustard oil','Pickle','Papad','Snacks','Biscuits','Namkeen','Tea','Coffee','Horlicks','Boost','Milo','Turmeric','Chilli powder','Coriander powder','Garam masala','Cumin','Pepper','Cardamom','Bay leaf','Clove','Tamarind','Jaggery','Coconut','Rava','Sooji','Besan','Maida','Poha','Vermicelli','Oats','Cornflour','Arrowroot','Vinegar','Soya sauce','Ketchup','Mayonnaise'],
-  vegetables:   ['Tomato','Onion','Potato','Carrot','Beans','Cabbage','Cauliflower','Brinjal','Capsicum','Spinach','Methi','Coriander','Curry leaves','Drumstick','Bitter gourd','Ridge gourd','Bottle gourd','Ash gourd','Raw banana','Plantain','Yam','Colocasia','Sweet potato','Radish','Turnip','Beetroot','Peas','Corn','Mushroom','Broccoli','Zucchini','Lettuce','Celery','Lady finger','Okra','Cluster beans','Flat beans','Sword beans','Tindora','Kovakkai','Vazhakkai','Kathirikkai','Vendakkai','Seppankizhangu','Mochai','Agathi','Ponnanganni','Manathakkali'],
+  vegetables:   ['Tomato','Onion','Potato','Carrot','Beans','Cabbage','Cauliflower','Brinjal','Capsicum','Spinach','Methi','Coriander','Curry leaves','Drumstick','Bitter gourd','Ridge gourd','Bottle gourd','Ash gourd','Raw banana','Plantain','Yam','Colocasia','Sweet potato','Radish','Turnip','Beetroot','Peas','Corn','Mushroom','Broccoli','Zucchini','Lettuce','Celery','Lady finger','Okra','Cluster beans','Flat beans','Tindora','Kovakkai','Vazhakkai','Kathirikkai','Vendakkai','Seppankizhangu','Keerai'],
   fruits:       ['Apple','Banana','Mango','Orange','Grapes','Watermelon','Papaya','Pineapple','Pomegranate','Guava','Chickoo','Sapota','Custard apple','Sitaphal','Jackfruit','Coconut','Tender coconut','Lemon','Lime','Kiwi','Strawberry','Blueberry','Pear','Peach','Plum','Apricot','Fig','Dates','Dry fruits','Raisin','Cashew','Almond','Walnut','Pistachio','Peanut'],
+  outside_food: ['Zomato','Swiggy','Restaurant','Hotel food','Cafe','Bakery','Biryani','Pizza','Burger','Dosa','Idli','Meals','Tiffin','Parcel food','Tea','Coffee','Juice','Snacks','Sweets','Chaat','Ice cream','Shawarma','Momos','KFC','McDonalds','Dominos','Starbucks','CCD','Canteen','Parotta','Outside food'],
   medical:      ['Medicine','Doctor visit','Lab test','Pharmacy','Dental','Hospital','Clinic','Tablet','Syrup','Injection','Scan','Blood test','X-ray','Physiotherapy','Ayurvedic','Homeopathy','Eye drops','Bandage','Glucometer','BP machine','Nebulizer','Vitamin','Supplement','Protein','Calcium','Iron','Zinc'],
-  outside_food: ['Zomato','Swiggy','Restaurant','Hotel food','Cafe','Bakery','Biryani','Pizza','Burger','Dosa','Idli','Meals','Tiffin','Parcel food','Tea','Coffee','Juice','Snacks','Sweets','Chaat','Ice cream','Shawarma','Momos','KFC','McDonalds','Dominos','Starbucks','CCD','Canteen'],
   bills:        ['Rent','EB','Electricity','Mobile recharge','Internet','Gas cylinder','Maid','Netflix','Amazon Prime','Insurance','EMI','Maintenance','Water bill','DTH','Cable','Spotify','Hotstar','School fees','College fees','Loan','Newspaper','LPG'],
+  transport:    ['Uber','Ola','Auto','Petrol','Diesel','Bus','Train','Metro','Parking','Rapido','Cab','Toll','Flight','Bike service','Car wash','Fuel'],
+  clothing:     ['Dress','Shirt','Pant','Jeans','Kurti','Saree','Shoes','Sandals','Chappal','Trends','Zudio','Westside','Myntra','Ajio','Watch','Belt','Bag','Purse','Wallet','Jewellery'],
+  selfcare:     ['Salon','Haircut','Skincare','Makeup','Sunscreen','Supplement','Protein','Gym','Perfume','Face wash','Shampoo','Conditioner','Razor','Spa','Facial','Waxing','Threading'],
   other:        []
 };
 
@@ -551,7 +557,7 @@ const CAT_KEYWORDS = {
     'radish','mullangi','turnip','beetroot','beet','peas','pachai pattani','corn','mushroom',
     'broccoli','zucchini','lettuce','celery','ladyfinger','okra','vendakkai','ladies finger',
     'cluster beans','kothavarangai','flat beans','avarakkai','tindora','kovakkai','ivy gourd',
-    'raw mango','manchai','greens','keerai','agathi','ponnanganni','manathakkali','vegetable','veggies','sabzi','sabji'
+    'raw mango','greens','keerai','agathi','ponnanganni','manathakkali','vegetable','veggies','sabzi','sabji'
   ],
   fruits: [
     'apple','banana','mango','orange','grapes','watermelon','papaya','pineapple','pomegranate',
@@ -584,7 +590,7 @@ const CAT_KEYWORDS = {
     'pizza hut','burger king','haldiram','saravana bhavan','murugan idli','hot chips',
     'sangeetha','annachi','cool drinks','soft drink','soda','lassi','buttermilk','moru',
     'vadai','vada','pongal','upma','poori','parotta','chapati','roti','naan','kulcha',
-    'paniyaram','appam','puttu','pesarattu','uttapam','pesarattu','adai','dine','dining',
+    'paniyaram','puttu','pesarattu','uttapam','adai','dine','dining',
     'takeaway','takeout','delivery','food order','eat out','outing food','outside','hotel food'
   ],
   medical: [
@@ -605,6 +611,28 @@ const CAT_KEYWORDS = {
     'youtube premium','icloud','google one','dropbox','emi','loan','insurance','lic','premium',
     'school fees','college fees','tuition','coaching','maintenance','maid','cook','servant',
     'newspaper','milk subscription','society','flat','property tax','water tax','municipal'
+  ],
+  transport: [
+    'uber','ola','rapido','auto','rickshaw','cab','taxi','bus','train','metro','petrol',
+    'diesel','fuel','parking','toll','flight','travel','ticket','bike','car wash','car service',
+    'bike service','tyre','puncture','vehicle','namma metro','local train','ksrtc',
+    'tnstc','msrtc','tsrtc','bmtc','irctc','makemytrip','goibibo','redbus','ixigo','yatra'
+  ],
+  clothing: [
+    'dress','clothes','clothing','shirt','pant','jeans','kurti','saree','t-shirt','trouser',
+    'shorts','skirt','jacket','sweater','hoodie','socks','shoes','footwear','sandals','chappal',
+    'slipper','trends','zudio','westside','h&m','max fashion','pantaloons','myntra','ajio',
+    'meesho','watch','belt','bag','purse','wallet','jewellery','earring','necklace','bangle',
+    'bracelet','ring','fashion','accessories','innerwear','nightwear','uniform','dupatta',
+    'lehenga','churidar','salwar','kameez','dhoti','lungi','veshti','angavastram'
+  ],
+  selfcare: [
+    'makeup','cosmetics','skincare','moisturizer','sunscreen','serum','face wash','cream',
+    'lotion','lipstick','foundation','perfume','deodorant','deo','gym','fitness','yoga',
+    'salon','haircut','spa','facial','manicure','pedicure','waxing','threading','hair color',
+    'hair dye','body wash','trimmer','razor','beard','nail','nail paint','kajal','eyeliner',
+    'mascara','blush','compact','toner','scrub','hair oil','hair mask','hair serum',
+    'nykaa','mamaearth','himalaya','lakme','lotus','vlcc','wow','plum','mcaffeine'
   ],
   other: []
 };
