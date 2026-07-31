@@ -16,7 +16,7 @@
   --shadow: 0 2px 12px rgba(0,0,0,.06); --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
   --sh: 52px; --chat-w: 380px; --fab-size: 56px; --transition: .2s ease;
   /* Category colors */
-  --c-grocery: #27AE60; --c-outside: #E67E22; --c-clothing: #8E44AD;
+  --c-grocery: #27AE60; --c-quickcommerce: #F1C40F; --c-outside: #E67E22; --c-clothing: #8E44AD;
   --c-selfcare: #E91E63; --c-bills: #2980B9; --c-transport: #F39C12;
   --c-medical: #C0392B; --c-other: #7F8C8D;
 }
@@ -26,7 +26,7 @@
   --border: #30363D; --border-light: #21262D;
   --danger: #F85149; --warn: #E3B341; --success: #3FB950;
   --shadow: 0 2px 12px rgba(0,0,0,.3); --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
-  --c-grocery: #3FB950; --c-outside: #F0983E; --c-clothing: #BC8CF2;
+  --c-grocery: #3FB950; --c-quickcommerce: #F1C40F; --c-outside: #F0983E; --c-clothing: #BC8CF2;
   --c-selfcare: #F06292; --c-bills: #58A6FF; --c-transport: #E3B341;
   --c-medical: #F85149; --c-other: #8B949E;
 }
@@ -517,17 +517,18 @@ tbody td { padding: 9px 10px; font-size: 13px; border-bottom: 1px solid var(--bo
 // CATEGORIES — the single source of truth
 // ═════════════════════════════════════════════════════════════════════════════
 const CATEGORIES = [
-  { id:'grocery',      name:'Grocery',           emoji:'🛒', cssVar:'--c-grocery' },
-  { id:'vegetables',   name:'Vegetables',        emoji:'🥦', cssVar:'--c-grocery' },
-  { id:'fruits',       name:'Fruits',            emoji:'🍎', cssVar:'--c-outside' },
-  { id:'outside_food', name:'Outside Food',      emoji:'🍕', cssVar:'--c-outside' },
-  { id:'nonveg',       name:'Non Veg',           emoji:'🍗', cssVar:'--c-medical' },
-  { id:'medical',      name:'Medical',           emoji:'🏥', cssVar:'--c-medical' },
-  { id:'bills',        name:'Bills & Utilities', emoji:'🏠', cssVar:'--c-bills' },
-  { id:'transport',    name:'Transport',         emoji:'🚗', cssVar:'--c-transport' },
-  { id:'clothing',     name:'Clothing & Fashion',emoji:'👗', cssVar:'--c-clothing' },
-  { id:'selfcare',     name:'Self Care',         emoji:'💄', cssVar:'--c-selfcare' },
-  { id:'other',        name:'Others',            emoji:'📦', cssVar:'--c-other' },
+  { id:'grocery',       name:'Grocery',           emoji:'🛒', cssVar:'--c-grocery' },
+  { id:'quick_commerce',name:'Quick Commerce',    emoji:'⚡', cssVar:'--c-quickcommerce' },
+  { id:'vegetables',    name:'Vegetables',        emoji:'🥦', cssVar:'--c-grocery' },
+  { id:'fruits',        name:'Fruits',            emoji:'🍎', cssVar:'--c-outside' },
+  { id:'outside_food',  name:'Outside Food',      emoji:'🍕', cssVar:'--c-outside' },
+  { id:'nonveg',        name:'Non Veg',           emoji:'🍗', cssVar:'--c-medical' },
+  { id:'medical',       name:'Medical',           emoji:'🏥', cssVar:'--c-medical' },
+  { id:'bills',         name:'Bills & Utilities', emoji:'🏠', cssVar:'--c-bills' },
+  { id:'transport',     name:'Transport',         emoji:'🚗', cssVar:'--c-transport' },
+  { id:'clothing',      name:'Clothing & Fashion',emoji:'👗', cssVar:'--c-clothing' },
+  { id:'selfcare',      name:'Self Care',         emoji:'💄', cssVar:'--c-selfcare' },
+  { id:'other',         name:'Others',            emoji:'📦', cssVar:'--c-other' },
 ];
 const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
 function getCat(id) { return CAT_MAP[id] || CAT_MAP['other']; }
@@ -535,21 +536,26 @@ function catColor(id) { return `var(${getCat(id).cssVar})`; }
 
 // Default description items per category
 const DEFAULT_DESCS = {
-  grocery:      ['Milk','Curd','Egg','Paneer','Bread','Butter','Ghee','Rice','Dal','Oil','Atta','Sugar','Salt','Broom','Tissue','Detergent','Soap','Shampoo','Toothpaste','Masala','Coconut oil','Mustard oil','Pickle','Papad','Snacks','Biscuits','Namkeen','Tea','Coffee','Horlicks','Boost','Milo','Turmeric','Chilli powder','Coriander powder','Garam masala','Cumin','Pepper','Cardamom','Bay leaf','Clove','Tamarind','Jaggery','Coconut','Rava','Sooji','Besan','Maida','Poha','Vermicelli','Oats','Cornflour','Arrowroot','Vinegar','Soya sauce','Ketchup','Mayonnaise'],
-  vegetables:   ['Tomato','Onion','Potato','Carrot','Beans','Cabbage','Cauliflower','Brinjal','Capsicum','Spinach','Methi','Coriander','Curry leaves','Drumstick','Bitter gourd','Ridge gourd','Bottle gourd','Ash gourd','Raw banana','Plantain','Yam','Colocasia','Sweet potato','Radish','Turnip','Beetroot','Peas','Corn','Mushroom','Broccoli','Zucchini','Lettuce','Celery','Lady finger','Okra','Cluster beans','Flat beans','Tindora','Kovakkai','Vazhakkai','Kathirikkai','Vendakkai','Seppankizhangu','Keerai'],
-  fruits:       ['Apple','Banana','Mango','Orange','Grapes','Watermelon','Papaya','Pineapple','Pomegranate','Guava','Chickoo','Sapota','Custard apple','Sitaphal','Jackfruit','Coconut','Tender coconut','Lemon','Lime','Kiwi','Strawberry','Blueberry','Pear','Peach','Plum','Apricot','Fig','Dates','Dry fruits','Raisin','Cashew','Almond','Walnut','Pistachio','Peanut'],
-  outside_food: ['Zomato','Swiggy','Restaurant','Hotel food','Cafe','Bakery','Biryani','Pizza','Burger','Dosa','Idli','Meals','Tiffin','Parcel food','Tea','Coffee','Juice','Snacks','Sweets','Chaat','Ice cream','Shawarma','Momos','KFC','McDonalds','Dominos','Starbucks','CCD','Canteen','Parotta','Outside food'],
-  nonveg:       ['Chicken','Mutton','Fish','Prawn','Egg','Crab','Squid','Beef','Pork','Chicken curry','Fish curry','Mutton curry','Chicken biryani','Mutton biryani','Fish fry','Chicken fry','Prawn fry','Seafood','Non veg'],
-  medical:      ['Medicine','Doctor visit','Lab test','Pharmacy','Dental','Hospital','Clinic','Tablet','Syrup','Injection','Scan','Blood test','X-ray','Physiotherapy','Ayurvedic','Homeopathy','Eye drops','Bandage','Glucometer','BP machine','Nebulizer','Vitamin','Supplement','Protein','Calcium','Iron','Zinc'],
-  bills:        ['Rent','EB','Electricity','Mobile recharge','Internet','Gas cylinder','Maid','Netflix','Amazon Prime','Insurance','EMI','Maintenance','Water bill','DTH','Cable','Spotify','Hotstar','School fees','College fees','Loan','Newspaper','LPG'],
-  transport:    ['Uber','Ola','Auto','Petrol','Diesel','Bus','Train','Metro','Parking','Rapido','Cab','Toll','Flight','Bike service','Car wash','Fuel'],
-  clothing:     ['Dress','Shirt','Pant','Jeans','Kurti','Saree','Shoes','Sandals','Chappal','Trends','Zudio','Westside','Myntra','Ajio','Watch','Belt','Bag','Purse','Wallet','Jewellery'],
-  selfcare:     ['Salon','Haircut','Skincare','Makeup','Sunscreen','Supplement','Protein','Gym','Perfume','Face wash','Shampoo','Conditioner','Razor','Spa','Facial','Waxing','Threading'],
-  other:        []
+  grocery:        ['Milk','Curd','Egg','Paneer','Bread','Butter','Ghee','Rice','Dal','Oil','Atta','Sugar','Salt','Broom','Tissue','Detergent','Soap','Shampoo','Toothpaste','Masala','Coconut oil','Mustard oil','Pickle','Papad','Snacks','Biscuits','Namkeen','Tea','Coffee','Horlicks','Boost','Milo','Turmeric','Chilli powder','Coriander powder','Garam masala','Cumin','Pepper','Cardamom','Bay leaf','Clove','Tamarind','Jaggery','Coconut','Rava','Sooji','Besan','Maida','Poha','Vermicelli','Oats','Cornflour','Arrowroot','Vinegar','Soya sauce','Ketchup','Mayonnaise'],
+  quick_commerce: ['Blinkit','Zepto','Instamart','BB Now','Flipkart Minutes','Dunzo','Ola Dash','BigBasket','Lucious Instant','Quick Commerce Order'],
+  vegetables:     ['Tomato','Onion','Potato','Carrot','Beans','Cabbage','Cauliflower','Brinjal','Capsicum','Spinach','Methi','Coriander','Curry leaves','Drumstick','Bitter gourd','Ridge gourd','Bottle gourd','Ash gourd','Raw banana','Plantain','Yam','Colocasia','Sweet potato','Radish','Turnip','Beetroot','Peas','Corn','Mushroom','Broccoli','Zucchini','Lettuce','Celery','Lady finger','Okra','Cluster beans','Flat beans','Tindora','Kovakkai','Vazhakkai','Kathirikkai','Vendakkai','Seppankizhangu','Keerai'],
+  fruits:         ['Apple','Banana','Mango','Orange','Grapes','Watermelon','Papaya','Pineapple','Pomegranate','Guava','Chickoo','Sapota','Custard apple','Sitaphal','Jackfruit','Coconut','Tender coconut','Lemon','Lime','Kiwi','Strawberry','Blueberry','Pear','Peach','Plum','Apricot','Fig','Dates','Dry fruits','Raisin','Cashew','Almond','Walnut','Pistachio','Peanut'],
+  outside_food:   ['Swiggy','Zomato','Eatsure','Magicpin','Uber Eats','Foodpanda','Restaurant','Hotel food','Cafe','Bakery','Biryani','Pizza','Burger','Dosa','Idli','Meals','Tiffin','Parcel food','Tea','Coffee','Juice','Snacks','Sweets','Chaat','Ice cream','Shawarma','Momos','KFC','McDonalds','Dominos','Pizza Hut','Burger King','Starbucks','CCD','Canteen','Parotta','Outside food'],
+  nonveg:         ['Chicken','Mutton','Fish','Prawn','Egg','Crab','Squid','Beef','Pork','Chicken curry','Fish curry','Mutton curry','Chicken biryani','Mutton biryani','Fish fry','Chicken fry','Prawn fry','Seafood','Non veg'],
+  medical:        ['Medicine','Doctor visit','Lab test','Pharmacy','Dental','Hospital','Clinic','Tablet','Syrup','Injection','Scan','Blood test','X-ray','Physiotherapy','Ayurvedic','Homeopathy','Eye drops','Bandage','Glucometer','BP machine','Nebulizer','Vitamin','Supplement','Protein','Calcium','Iron','Zinc'],
+  bills:          ['Rent','EB','Electricity','Mobile recharge','Internet','Gas cylinder','Maid','Netflix','Amazon Prime','Insurance','EMI','Maintenance','Water bill','DTH','Cable','Spotify','Hotstar','School fees','College fees','Loan','Newspaper','LPG'],
+  transport:      ['Uber','Ola','Auto','Petrol','Diesel','Bus','Train','Metro','Parking','Rapido','Cab','Toll','Flight','Bike service','Car wash','Fuel'],
+  clothing:       ['Dress','Shirt','Pant','Jeans','Kurti','Saree','Shoes','Sandals','Chappal','Trends','Zudio','Westside','Myntra','Ajio','Watch','Belt','Bag','Purse','Wallet','Jewellery'],
+  selfcare:       ['Salon','Haircut','Skincare','Makeup','Sunscreen','Supplement','Protein','Gym','Perfume','Face wash','Shampoo','Conditioner','Razor','Spa','Facial','Waxing','Threading'],
+  other:          []
 };
 
 // Auto-detect keyword map — comprehensive Indian items
 const CAT_KEYWORDS = {
+  quick_commerce: [
+    'blinkit','zepto','instamart','swiggy instamart','bbnow','bb now','bigbasket now','flipkart minutes',
+    'dunzo','ola dash','quick commerce','lucious instant','blink it'
+  ],
   vegetables: [
     'tomato','tomatoes','onion','onions','potato','potatoes','carrot','carrots','beans','cabbage',
     'cauliflower','brinjal','eggplant','capsicum','spinach','palak','methi','fenugreek','coriander',
@@ -585,7 +591,8 @@ const CAT_KEYWORDS = {
     'coconut','thengai','raw rice','boiled rice','basmati','sona masoori','idiyappam','appam'
   ],
   outside_food: [
-    'zomato','swiggy','restaurant','hotel','cafe','bakery','pizza','burger','biryani','biriyani',
+    'zomato','swiggy','swiggy gourmet','eatsure','magicpin','ubereats','uber eats','foodpanda',
+    'restaurant','hotel','cafe','bakery','pizza','burger','biryani','biriyani',
     'dosa','idli','meals','tiffin','parcel','outside food','canteen','mess','shawarma','momos',
     'pani puri','golgappa','chaat','ice cream','juice','tea stall','coffee shop','kfc',
     'mcdonalds','mcdonald','dominos','domino','starbucks','ccd','cafe coffee day','subway',
@@ -1609,66 +1616,44 @@ async function openBackupModal() {
       const label = d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       const isToday = date === new Date().toISOString().slice(0, 10);
       return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg)">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text)">${label}</div>
-            ${isToday ? '<div style="font-size:11px;color:var(--brand);margin-top:2px">Today\'s backup</div>' : ''}
-          </div>
-          <div style="display:flex;gap:6px">
-            <button onclick="doDownloadBackup('${date}')" style="padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;font-size:12px;color:var(--text-2)" title="Download as JSON">⬇ Download</button>
-            <button onclick="doRestoreBackup('${date}')" style="padding:6px 12px;border:none;border-radius:6px;background:var(--brand);color:#fff;cursor:pointer;font-size:12px;font-weight:600">Restore</button>
-          </div>
-        </div>`;
+        <button class="import-choice-btn" onclick="restoreBackup('${date}')">
+          <strong>${label}${isToday ? ' (Today)' : ''}</strong>
+          <span>Click to restore budget data from this day</span>
+        </button>`;
     }).join('');
   } catch(e) {
-    listEl.innerHTML = `<div style="color:var(--danger);font-size:13px;text-align:center;padding:12px">Failed to load backups: ${e.message}</div>`;
+    listEl.innerHTML = '<div style="color:var(--danger);font-size:13px;text-align:center;padding:12px">Failed to load backups.</div>';
   }
 }
 
-async function doRestoreBackup(date) {
-  if (!confirm(`Restore data from ${date}? Your current data will be replaced.`)) return;
-  closeModal('backupModal');
+async function restoreBackup(date) {
+  if (!confirm(`Restore backup from ${date}? Current unsaved changes will be replaced.`)) return;
   try {
-    const res = await fetch('/api/restore', {
+    const res = await fetch('/api/restore-backup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: syncGetPassword(), date })
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    if (!res.ok) throw new Error(json.error || 'Restore failed');
+    if (!json.data || !json.data.months) throw new Error('Invalid backup data');
+    
+    // Apply restored backup
     syncSkipCloud = true;
-    Object.assign(state, json.data);
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    state = json.data;
+    saveData();
     syncSkipCloud = false;
+    
+    closeModal('backupModal');
     populateCategorySelects();
     renderMonthTabs();
     const ks = Object.keys(state.months).sort();
     if (ks.length) { activeMonth = ks[ks.length - 1]; renderAll(); }
-    showToast(`✅ Restored data from ${date}. Click ⬆ to save to cloud if you want to keep this.`);
+    showToast(`✅ Restored backup from ${date}!`);
   } catch(e) {
     showToast('❌ Restore failed: ' + e.message, true);
   }
 }
-
-async function doDownloadBackup(date) {
-  try {
-    const res = await fetch('/api/restore', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: syncGetPassword(), date })
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-    const blob = new Blob([JSON.stringify(json.data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `expense_backup_${date}.json`;
-    a.click(); URL.revokeObjectURL(url);
-  } catch(e) {
-    showToast('❌ Download failed: ' + e.message, true);
-  }
-}
-
 </script>
 </body>
 </html>
