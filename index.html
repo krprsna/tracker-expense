@@ -1616,10 +1616,16 @@ async function openBackupModal() {
       const label = d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       const isToday = date === new Date().toISOString().slice(0, 10);
       return `
-        <button class="import-choice-btn" onclick="restoreBackup('${date}')">
-          <strong>${label}${isToday ? ' (Today)' : ''}</strong>
-          <span>Click to restore budget data from this day</span>
-        </button>`;
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${label}</div>
+            ${isToday ? '<div style="font-size:11px;color:var(--brand);margin-top:2px">Today\'s backup</div>' : ''}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="downloadBackup('${date}')" style="padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;font-size:12px;color:var(--text-2)">⬇ Download</button>
+            <button onclick="restoreBackup('${date}')" style="padding:6px 12px;border:none;border-radius:6px;background:var(--brand);color:#fff;cursor:pointer;font-size:12px;font-weight:600">Restore</button>
+          </div>
+        </div>`;
     }).join('');
   } catch(e) {
     listEl.innerHTML = '<div style="color:var(--danger);font-size:13px;text-align:center;padding:12px">Failed to load backups.</div>';
@@ -1629,7 +1635,7 @@ async function openBackupModal() {
 async function restoreBackup(date) {
   if (!confirm(`Restore backup from ${date}? Current unsaved changes will be replaced.`)) return;
   try {
-    const res = await fetch('/api/restore-backup', {
+    const res = await fetch('/api/restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: syncGetPassword(), date })
@@ -1640,8 +1646,8 @@ async function restoreBackup(date) {
     
     // Apply restored backup
     syncSkipCloud = true;
-    state = json.data;
-    saveData();
+    Object.assign(state, json.data);
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
     syncSkipCloud = false;
     
     closeModal('backupModal');
@@ -1652,6 +1658,25 @@ async function restoreBackup(date) {
     showToast(`✅ Restored backup from ${date}!`);
   } catch(e) {
     showToast('❌ Restore failed: ' + e.message, true);
+  }
+}
+
+async function downloadBackup(date) {
+  try {
+    const res = await fetch('/api/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: syncGetPassword(), date })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Download failed');
+    const blob = new Blob([JSON.stringify(json.data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `expense_backup_${date}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  } catch(e) {
+    showToast('❌ Download failed: ' + e.message, true);
   }
 }
 </script>
