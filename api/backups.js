@@ -10,6 +10,12 @@ function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
+function safeParse(raw) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === 'object') return raw;
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { password } = req.body;
@@ -18,7 +24,8 @@ export default async function handler(req, res) {
     const hash = hashPassword(password);
     const metaKey = `backupmeta:${hash}`;
     const raw = await redis.get(metaKey);
-    const dates = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+    const parsed = safeParse(raw);
+    const dates = Array.isArray(parsed) ? parsed : [];
     return res.status(200).json({ dates });
   } catch(e) {
     console.error('Backups list error:', e);
