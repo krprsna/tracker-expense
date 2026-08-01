@@ -15,6 +15,12 @@ function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function safeParse(raw) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === 'object') return raw;
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { password, data } = req.body;
@@ -27,26 +33,17 @@ export default async function handler(req, res) {
     // Save main data
     await redis.set(`expenses:${hash}`, JSON.stringify({ data, savedAt }));
 
-    // Save daily backup (one per day, keyed by date)
+    // Save daily backup
     const dateKey = todayKey();
-    const backupKey = `backup:${hash}:${dateKey}`;
-    await redis.set(backupKey, JSON.stringify({ data, savedAt, date: dateKey }));
+    await redis.set(`backup:${hash}:${dateKey}`, JSON.stringify({ data, savedAt, date: dateKey }));
 
-    // Track list of backup dates (keep up to 5)
+    // Update backup date list (max 5)
     const metaKey = `backupmeta:${hash}`;
-    let dates = [];
-    try {
-      const raw = await redis.get(metaKey);
-      dates = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
-    } catch(e) { dates = []; }
-
-    // Add today if not already present, keep sorted descending, max 5
+    const raw = await redis.get(metaKey);
+    let dates = safeParse(raw);
+    dates = Array.isArray(dates) ? dates : [];
     if (!dates.includes(dateKey)) dates.unshift(dateKey);
     dates = [...new Set(dates)].sort((a, b) => b.localeCompare(a)).slice(0, 5);
-
-    // Delete backups beyond 5
-    const allBackupKeys = dates.map(d => `backup:${hash}:${d}`);
-    // Find and delete any old backup keys not in current list
     await redis.set(metaKey, JSON.stringify(dates));
 
     return res.status(200).json({ ok: true, savedAt });
